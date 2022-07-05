@@ -1,25 +1,19 @@
 import isStr from 'licia/isStr';
 import copy from 'licia/copy';
-import toArr from 'licia/toArr';
 import keys from 'licia/keys';
-import xpath from 'licia/xpath';
 import each from 'licia/each';
 
 const global: any = {
   copy(value: any) {
+    debugger;
     if (!isStr(value)) value = JSON.stringify(value, null, 2);
     copy(value);
   },
-  $(selector: string) {
-    return document.querySelector(selector);
+  keys: (args) => {
+
+    debugger;
+    return keys(args);
   },
-  $$(selector: string) {
-    return toArr(document.querySelectorAll(selector));
-  },
-  $x(path: string) {
-    return xpath(path);
-  },
-  keys,
 };
 
 declare const window: any;

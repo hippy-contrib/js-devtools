@@ -6,15 +6,22 @@ import isStr from 'licia/isStr';
 import fnParams from 'licia/fnParams';
 import uncaught from 'licia/uncaught';
 import startWith from 'licia/startWith';
-import stackTrace from 'licia/stackTrace';
+import once from 'licia/once';
 import trim from 'licia/trim';
 import * as stringifyObj from '../lib/stringifyObj';
 import evaluateJs, { setGlobal } from '../lib/evaluate';
+import { hookFunction } from '../lib/hook';
 
+let enabled = false;
+/**
+ * cache history log before `Log.enable` protocol, 
+ * will clear queue when receive `Log.enable` or `Log.clear`
+ */
+let cmdQueue: CMD[] = [];
 const executionContext = {
   id: 1,
   name: 'top',
-  origin: location.origin,
+  origin: '',
 };
 
 export async function callFunctionOn(params: any) {
@@ -42,11 +49,22 @@ export async function callFunctionOn(params: any) {
 }
 
 export function enable() {
+  if(enabled) return;
+
+  // log.info('enable Log devtools');
+  enabled = true;
+
   uncaught.start();
-  monitorConsole();
   connector.trigger('Runtime.executionContextCreated', {
     context: executionContext,
   });
+
+  cmdQueue.forEach(cmd => connector.trigger(...cmd));
+  cmdQueue = [];
+}
+
+export function discardConsoleEntries() {
+  stringifyObj.clear();
 }
 
 export function getProperties(params: any) {
@@ -80,7 +98,7 @@ export function releaseObject(params: any) {
 
 declare const console: any;
 
-function monitorConsole() {
+export const hookConsole = once(function () {
   const methods: any = {
     log: 'log',
     warn: 'warning',
@@ -95,18 +113,18 @@ function monitorConsole() {
     clear: 'clear',
   };
 
-  each(methods, (type, name) => {
-    const origin = console[name].bind(console);
-    console[name] = (...args: any[]) => {
-      origin(...args);
-
+  const createConsoleHook = name => ({
+    after: (ctx, rst, ...args: any[]) => {
+      if (ignoreLog(args)) return;
+  
       args = map(args, arg =>
         stringifyObj.wrap(arg, {
           generatePreview: true,
         })
       );
-
-      connector.trigger('Runtime.consoleAPICalled', {
+      
+      const type = methods[name];
+      const consoleAPICalledEvent: CMD = ['Runtime.consoleAPICalled', {
         type,
         args,
         stackTrace: {
@@ -115,10 +133,17 @@ function monitorConsole() {
         },
         executionContextId: executionContext.id,
         timestamp: now(),
-      });
-    };
+      }];
+      if(!enabled) cmdQueue.push(consoleAPICalledEvent);
+      else connector.trigger(...consoleAPICalledEvent);
+    },
   });
-}
+
+  each(methods, (type, name) => {
+    hookFunction(console, name, createConsoleHook(name));
+    hookFunction(ConsoleModule, name, createConsoleHook(name));
+  });
+});
 
 const Function = window.Function;
 /* tslint:disable-next-line */
@@ -154,14 +179,19 @@ async function callFn(
 }
 
 uncaught.addListener(err => {
-  connector.trigger('Runtime.exceptionThrown', {
+  const consoleAPICalledEvent: CMD = ['Runtime.exceptionThrown', {
     exceptionDetails: {
       exception: stringifyObj.wrap(err),
       stackTrace: { callFrames: getCallFrames(err) },
       text: 'Uncaught',
     },
     timestamp: now,
-  });
+  }];
+  if(!enabled) {
+    cmdQueue.push(consoleAPICalledEvent);
+  } else {
+    connector.trigger(...consoleAPICalledEvent);
+  }
 });
 
 function getCallFrames(error?: Error) {
@@ -169,11 +199,23 @@ function getCallFrames(error?: Error) {
   const callSites: any = error ? error.stack : stackTrace();
   if (isStr(callSites)) {
     callFrames = callSites.split('\n');
-    if (!error) {
-      callFrames.shift();
-    }
-    callFrames.shift();
-    callFrames = map(callFrames, val => ({ functionName: trim(val) }));
+    // if (!error) {
+    //   callFrames.shift();
+    // }
+    // callFrames.shift();
+    callFrames = map(callFrames, val => {
+      // iOS callFrame format `functionName@url:lineNumber:columnNumber`
+      const group = val.match(/^(.*)\@(.*)\:(\d+)\:(\d+)$/);
+      if (group) {
+        return {
+          functionName: group[1],
+          url: group[2],
+          lineNumber: Number(group[3]),
+          columnNumber: Number(group[4]),
+        };
+      }
+      return { functionName: trim(val) };
+    });
   } else {
     callSites.shift();
     callFrames = map(callSites, (callSite: any) => {
@@ -186,4 +228,36 @@ function getCallFrames(error?: Error) {
     });
   }
   return callFrames;
+}
+
+/**
+ * ignore log the debug CDP message in WebSocket
+ */
+function ignoreLog(args: any[]) {
+  const cdpDomains = ['Runtime'];
+  const logType = 'hippyWebsocketEvents';
+  return args.some(item => {
+    if (!(item instanceof Array)) return false;
+    if (item[0] !== logType) return false;
+    try {
+      const cdp = JSON.parse(item[1].data.data);
+      return cdpDomains.some(domain =>
+        new RegExp(`^${domain}\\.`).test(cdp.method)
+      );
+    } catch (e) {
+      return false;
+    }
+  });
+}
+
+function stackTrace() {
+  var orig = Error.prepareStackTrace;
+
+  Error.prepareStackTrace = function (_, stack) {
+    return stack;
+  };
+
+  var stack = new Error().stack;
+  Error.prepareStackTrace = orig;
+  return stack;
 }

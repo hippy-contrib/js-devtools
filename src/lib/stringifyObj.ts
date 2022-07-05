@@ -125,7 +125,7 @@ export function getProperties(params: any) {
 
   const obj = objects.get(objectId);
   const self = selfs.get(objectId);
-  const keys = allKeys(obj, options);
+  const keys = obj ? allKeys(obj, options) : [];
   const proto = getProto(obj);
   for (let i = 0, len = keys.length; i < len; i++) {
     const name = keys[i];

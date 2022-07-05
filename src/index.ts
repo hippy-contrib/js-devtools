@@ -1,9 +1,18 @@
 import connector from './lib/connector';
+import { createBridge } from './lib/bridge';
 import noop from 'licia/noop';
 import uuid from 'licia/uuid';
 import methods from './domains/methods';
 import each from 'licia/each';
 import Emitter from 'licia/Emitter';
+import { hookWebSocket, hookFetch } from './domains/Network';
+import { hookConsole } from './domains/Runtime';
+import { hookLocalStorage } from './domains/DOMStorage';
+import { parseURL } from './lib/url';
+import { setDomains } from './lib/domain';
+import { log } from './lib/log';
+// @ts-ignore
+import { Vue, NetworkModule } from './lib/external';
 
 type OnMessage = (message: string) => void;
 type DomainMethod = (...args: any[]) => any;
@@ -69,7 +78,7 @@ class Chobitsu {
       resultMsg.result = await this.callMethod(method, params);
     } catch (e) {
       resultMsg.error = {
-        message: e.message,
+        message: (e as Error).message,
       };
     }
 
@@ -98,4 +107,43 @@ class Chobitsu {
   }
 }
 
-module.exports = new Chobitsu();
+let { domains } = parseURL(__resourceQuery) as any;
+try {
+  domains = JSON.parse(domains);
+} catch(e) {
+  domains = []
+}
+setDomains(domains);
+
+const startVanillaJSDebug = () => {
+  log.info('enable inspect Network, Cookie, Storage');
+
+  let isInit = false;
+  const chobitsu = new Chobitsu();
+  const ws = createBridge({
+    onOpen: () => {
+      isInit = true;
+    },
+    onClose: () => {
+      isInit = false;
+    },
+    onMessage: (event) => {
+      chobitsu.sendRawMessage(event.data);
+    }
+  });
+  chobitsu.setOnMessage((message: string) => {
+    if(!isInit) return;
+    ws.send(message);
+  })
+};
+
+// @ts-ignore
+if(global?.Hippy?.device?.platform?.OS === 'ios') hookConsole();
+hookWebSocket();
+hookFetch();
+hookLocalStorage();
+
+// because Vue getApp could not resolve before `new Hippy` is called, delay here
+setTimeout(() => {
+  startVanillaJSDebug();
+}, 2000);

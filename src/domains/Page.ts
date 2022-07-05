@@ -1,41 +1,39 @@
-import $ from 'licia/$';
-import fetch from 'licia/fetch';
-import { fullUrl } from '../lib/request';
-
-export async function getAppManifest() {
-  const $links = $('link');
-  const ret: any = {
-    errors: [],
-  };
-
-  let url = '';
-  $links.each(function (this: Element) {
-    const $this = $(this);
-
-    if ($this.attr('rel') === 'manifest') {
-      url = fullUrl($this.attr('href'));
-    }
-  });
-  ret.url = url;
-
-  if (url) {
-    const res = await fetch(url);
-    ret.data = await res.text();
-  }
-
-  return ret;
-}
+import { getDomains } from '../lib/domain';
+import connector from '../lib/connector';
 
 export function getResourceTree() {
+  const origins = getDomains();
   return {
     frameTree: {
       frame: {
-        id: '',
+        id: '0',
         mimeType: 'text/html',
-        securityOrigin: location.origin,
-        url: location.href,
+        securityOrigin: '',
+        url: '',
+        secureContextType: 'Secure',
+        crossOriginIsolatedContextType: 'NotIsolated',
+        gatedAPIFeatures: [],
       },
+      childFrames:
+        origins.slice(0).map((origin, i) => ({
+          frame: {
+            id: `${i}`,
+            parentId: '0',
+            mimeType: 'text/html',
+            securityOrigin: origin,
+            url: origin,
+            secureContextType: 'Secure',
+            crossOriginIsolatedContextType: 'NotIsolatedFeatureDisabled',
+            gatedAPIFeatures: [],
+          },
+          resources: [],
+        })) || [],
       resources: [],
     },
   };
+}
+
+export const triggerFrameUpdated = () => {
+  const body = getResourceTree();
+  connector.trigger('Page.frameUpdated', body)
 }
