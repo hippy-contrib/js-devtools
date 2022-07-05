@@ -20,8 +20,16 @@ export const createBridge = (handlers: SocketHandlers) => {
     role: 'vanilla_js_runtime',
     contextName: 'contextName',
     clientId,
+    // @ts-ignore
+    platform: global?.Hippy?.device?.platform?.OS === 'ios' ? DevicePlatform.IOS : DevicePlatform.Android,
   })
 
   const socket = socketWithRetry(url, handlers)
   return socket;
+}
+
+enum DevicePlatform {
+  Unknown = '0',
+  IOS = '1',
+  Android = '2',
 }
