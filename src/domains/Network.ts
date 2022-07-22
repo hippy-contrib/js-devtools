@@ -220,7 +220,7 @@ export const hookWebSocket = once(() => {
          */
         setTimeout(() => {
           this._onWebSocketEvent(...args);
-        }, 10);
+        }, 100);
       }
     },
     onopen: {
