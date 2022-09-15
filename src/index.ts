@@ -5,7 +5,7 @@ import uuid from 'licia/uuid';
 import methods from './domains/methods';
 import each from 'licia/each';
 import Emitter from 'licia/Emitter';
-import { hookWebSocket, hookFetch } from './domains/Network';
+import { hookFetch, hookHttpRequest } from './domains/Network';
 import { hookConsole } from './domains/Runtime';
 import { hookLocalStorage } from './domains/DOMStorage';
 import { parseURL } from './lib/url';
@@ -139,8 +139,9 @@ const startVanillaJSDebug = () => {
 
 // @ts-ignore
 if(global?.Hippy?.device?.platform?.OS === 'ios') hookConsole();
-hookWebSocket();
+// hookWebSocket();
 hookFetch();
+hookHttpRequest();
 hookLocalStorage();
 
 // because Vue getApp could not resolve before `new Hippy` is called, delay here

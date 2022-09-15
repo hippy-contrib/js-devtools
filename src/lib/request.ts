@@ -4,7 +4,7 @@ import toNum from 'licia/toNum';
 export function getFetchSize(res: any, resTxt: string) {
   let size = 0;
 
-  const contentLen = res.headers['Content-Length'] || res.headers['content-length'];
+  const contentLen = res?.headers?.['Content-Length'] || res?.headers?.['content-length'];
 
   if (contentLen) {
     size = toNum(contentLen);

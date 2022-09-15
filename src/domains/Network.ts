@@ -157,6 +157,84 @@ export const hookFetch = once(() => {
   });
 })
 
+/**
+ * hook callNative('http', 'request', args)
+ * 此方法目前只在手Q中使用，由 native 层提供
+ */
+export const hookHttpRequest = once(() => {
+  // @ts-ignore
+  const originCallNative = global.Hippy.bridge.callNative;
+  const httpRequest = createHttpRequest(originCallNative);
+  // @ts-ignore
+  if(global?.Hippy?.bridge?.callNative) {
+    // @ts-ignore
+    global.Hippy.bridge.callNative = callNative;
+  }
+  if (Vue?.Native?.callNative) {
+    Vue.Native.callNative = callNative;
+  }
+
+  function callNative (module, method, ...args) {
+    switch (`${module}:${method}`) {
+      case 'http:request':
+        // @ts-ignore
+        return httpRequest(...args);
+    }
+    return originCallNative(module, method, ...args);
+  };
+})
+
+
+function createHttpRequest(callNative) {
+  return (options, callback) => {
+    const id = createId();
+    const reqHeaders = options?.headers || {};
+    const method = options?.method || 'GET';
+    const url = options.url;
+    const data = JSON.stringify(options.data || {});
+    
+    const protocol: CMD = ['Network.requestWillBeSent', {
+      requestId: id,
+      type: 'Fetch',
+      request: {
+        method,
+        url,
+        headers: reqHeaders,
+        postData: data,
+      },
+      timestamp: now() / 1000,
+    }];
+
+    triggerOrPushQueue(protocol);
+    
+    return callNative('http', 'request', options, (result) => {
+      const resTxt = JSON.stringify(result.data || {});
+      resTxtMap.set(id, resTxt);
+      const receiveProtocol: CMD = ['Network.responseReceived', {
+        requestId: id,
+        type: 'Fetch',
+        response: {
+          url,
+          status: result.code,
+          // 获取不到响应头
+          headers: result.headers || {},
+        },
+        timestamp: now() / 1000,
+      }];
+      const finishProtocol: CMD = ['Network.loadingFinished', {
+        requestId: id,
+        encodedDataLength: getFetchSize(result, resTxt),
+        timestamp: now() / 1000,
+      }];
+
+      triggerOrPushQueue(receiveProtocol);
+      triggerOrPushQueue(finishProtocol);
+
+      callback(result);
+    });
+  };
+}
+
 export const hookWebSocket = once(() => {
   hookClass(WebSocket, {
     send: {
