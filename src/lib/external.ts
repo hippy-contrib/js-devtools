@@ -5,11 +5,11 @@
  * https://github.com/webpack/webpack/issues/339
  */
 let Vue, NetworkModule;
-try {
-  Vue = require('@hippy/vue').default;
-} catch(e) {}
-try {
-  NetworkModule = require('@hippy/react').NetworkModule;
-} catch(e) {}
-
+// try {
+//   Vue = require('@hippy/vue').default;
+// } catch(e) {}
+// try {
+//   NetworkModule = require('@hippy/react').NetworkModule;
+// } catch(e) {}
+//
 export { Vue, NetworkModule };

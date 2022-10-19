@@ -12,7 +12,7 @@ import { parseURL } from './lib/url';
 import { setDomains } from './lib/domain';
 import { log } from './lib/log';
 // @ts-ignore
-import { Vue, NetworkModule } from './lib/external';
+// import { Vue, NetworkModule } from './lib/external';
 
 type OnMessage = (message: string) => void;
 type DomainMethod = (...args: any[]) => any;

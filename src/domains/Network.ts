@@ -10,7 +10,7 @@ import { hookClass, hookFunction } from '../lib/hook';
 import { createId } from '../lib/util';
 import { getDomains } from '../lib/domain';
 import { log } from '../lib/log';
-import { Vue, NetworkModule } from '../lib/external';
+// import { Vue, NetworkModule } from '../lib/external';
 
 const resTxtMap = new Map();
 let isEnabled = false;
@@ -19,13 +19,16 @@ let cmdQueue: CMD[] = [];
 export const enable = once(function () {
   // log.info('enable Network, Cookie devtools');
   isEnabled = true;
-  
+
   cmdQueue.forEach(cmd => connector.trigger(...cmd));
   cmdQueue = [];
 });
 
 export function deleteCookies(cookieItem: CookieItem) {
   const Cookie = getCookieAPI();
+  if (!Cookie) {
+    return;
+  }
   const { name, domain, url} = cookieItem;
   const expireDate = new Date(Date.now() - 100000);
   const origins = getDomains();
@@ -63,22 +66,26 @@ export function getResponseBody(params: any) {
 
 export const getCookieAPI = () => {
   try {
-    if(Vue?.Native?.Cookie) {
-        return Vue.Native.Cookie;
-    }
-    if(NetworkModule) {
-      const { getCookies, setCookie } = NetworkModule;
-      return {
-        getAll: getCookies.bind(NetworkModule),
-        set: setCookie.bind(NetworkModule),
-      };
-    }
+    // if(Vue?.Native?.Cookie) {
+    //     return Vue.Native.Cookie;
+    // }
+    // if(NetworkModule) {
+    //   const { getCookies, setCookie } = NetworkModule;
+    //   return {
+    //     getAll: getCookies.bind(NetworkModule),
+    //     set: setCookie.bind(NetworkModule),
+    //   };
+    // }
     log.warn('doesn\'t support Cookie in devtools, because could not find Cookie module');
+    return null;
   } catch (e) {}
 };
 
 export const setCookie = (cookieItem: CookieItem) => {
   const Cookie = getCookieAPI();
+  if (!Cookie) {
+    return;
+  }
   const { name, url, value} = cookieItem;
   Cookie.set(url, `${name}=${value}`);
 }
@@ -92,7 +99,7 @@ export const hookFetch = once(() => {
       const method = options?.method || 'GET';
       const data = isStr(options?.body) ? options?.body : '';
       ctx.reqHeaders = reqHeaders;
-      
+
       const protocol: CMD = ['Network.requestWillBeSent', {
         requestId: ctx.id,
         type: 'Fetch',
@@ -192,7 +199,7 @@ function createHttpRequest(callNative) {
     const method = options?.method || 'GET';
     const url = options.url;
     const data = JSON.stringify(options.data || {});
-    
+
     const protocol: CMD = ['Network.requestWillBeSent', {
       requestId: id,
       type: 'Fetch',
@@ -206,7 +213,7 @@ function createHttpRequest(callNative) {
     }];
 
     triggerOrPushQueue(protocol);
-    
+
     return callNative('http', 'request', options, (result) => {
       const resTxt = JSON.stringify(result.data || {});
       resTxtMap.set(id, resTxt);
@@ -255,7 +262,7 @@ export const hookWebSocket = once(() => {
     close: {
       before: function() {
         if ((this as any).ignoreMonitor) return;
-        
+
         triggerOrPushQueue(['Network.webSocketClosed', {
           requestId: (this as any).requestId,
           timestamp: Date.now() / 1000,
