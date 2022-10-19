@@ -169,29 +169,29 @@ export const hookFetch = once(() => {
  * 此方法目前只在手Q中使用，由 native 层提供
  */
 export const hookHttpRequest = once(() => {
-  // @ts-ignore
+  /*  // @ts-ignore
   const originCallNative = global.Hippy.bridge.callNative;
   const httpRequest = createHttpRequest(originCallNative);
   // @ts-ignore
-  if(global?.Hippy?.bridge?.callNative) {
-    // @ts-ignore
-    global.Hippy.bridge.callNative = callNative;
-  }
-  if (Vue?.Native?.callNative) {
-    Vue.Native.callNative = callNative;
-  }
-
-  function callNative (module, method, ...args) {
-    switch (`${module}:${method}`) {
-      case 'http:request':
-        // @ts-ignore
-        return httpRequest(...args);
+    if(global?.Hippy?.bridge?.callNative) {
+      // @ts-ignore
+      global.Hippy.bridge.callNative = callNative;
     }
-    return originCallNative(module, method, ...args);
-  };
+    if (Vue?.Native?.callNative) {
+      Vue.Native.callNative = callNative;
+    }
+
+    function callNative (module, method, ...args) {
+      switch (`${module}:${method}`) {
+        case 'http:request':
+          // @ts-ignore
+          return httpRequest(...args);
+      }
+      return originCallNative(module, method, ...args);
+    };*/
 })
 
-
+// @ts-ignore
 function createHttpRequest(callNative) {
   return (options, callback) => {
     const id = createId();
