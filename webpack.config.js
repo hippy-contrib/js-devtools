@@ -27,18 +27,18 @@ module.exports = {
     ],
   },
   externals: {
-    '@hippy/vue': {
-      commonjs: '@hippy/vue',
-      commonjs2: '@hippy/vue',
-      amd: '@hippy/vue',
-      root: 'Vue'
-    },
-    '@hippy/react': {
-      commonjs: '@hippy/react',
-      commonjs2: '@hippy/react',
-      amd: '@hippy/react',
-      root: 'React'
-    },
+    // '@hippy/vue': {
+    //   commonjs: '@hippy/vue',
+    //   commonjs2: '@hippy/vue',
+    //   amd: '@hippy/vue',
+    //   root: 'Vue'
+    // },
+    // '@hippy/react': {
+    //   commonjs: '@hippy/react',
+    //   commonjs2: '@hippy/react',
+    //   amd: '@hippy/react',
+    //   root: 'React'
+    // },
   },
   plugins: ([
     new webpack.BannerPlugin(banner),
