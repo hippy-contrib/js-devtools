@@ -8,8 +8,8 @@ export function getResourceTree() {
       frame: {
         id: '0',
         mimeType: 'text/html',
-        securityOrigin: '',
-        url: '',
+        securityOrigin: 'http://localhost:38989',
+        url: 'http://localhost:38989',
         secureContextType: 'Secure',
         crossOriginIsolatedContextType: 'NotIsolated',
         gatedAPIFeatures: [],

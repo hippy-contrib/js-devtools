@@ -9,8 +9,6 @@ import connector from '../lib/connector';
 import { hookClass, hookFunction } from '../lib/hook';
 import { createId } from '../lib/util';
 import { getDomains } from '../lib/domain';
-import { log } from '../lib/log';
-// import { Vue, NetworkModule } from '../lib/external';
 
 const resTxtMap = new Map();
 let isEnabled = false;
@@ -66,18 +64,40 @@ export function getResponseBody(params: any) {
 
 export const getCookieAPI = () => {
   try {
-    // if(Vue?.Native?.Cookie) {
-    //     return Vue.Native.Cookie;
-    // }
-    // if(NetworkModule) {
-    //   const { getCookies, setCookie } = NetworkModule;
-    //   return {
-    //     getAll: getCookies.bind(NetworkModule),
-    //     set: setCookie.bind(NetworkModule),
-    //   };
-    // }
-    log.warn('doesn\'t support Cookie in devtools, because could not find Cookie module');
-    return null;
+    // @ts-ignore
+    const callNative = global.Hippy.bridge.callNative;
+    // @ts-ignore
+    const callNativeWithPromise = global.Hippy.bridge.callNativeWithPromise;
+    return {
+      getAll(url) {
+        if (!url) {
+          throw new TypeError('Cookie.getAll() must have url argument');
+        }
+
+        return callNativeWithPromise.call(this, 'network', 'getCookie', url);
+      },
+      set(url, keyValue, expireDate?) {
+        if (!url) {
+          throw new TypeError('Cookie.getAll() must have url argument');
+        }
+
+        if (typeof keyValue !== 'string') {
+          throw new TypeError('Cookie.getAll() only receive string type of keyValue');
+        }
+
+        let expireStr = '';
+
+        if (expireDate) {
+          if (expireDate instanceof Date) {
+            expireStr = expireDate.toUTCString();
+          } else {
+            throw new TypeError('Cookie.getAll() only receive Date type of expires');
+          }
+        }
+
+        callNative.call(this, 'network', 'setCookie', url, keyValue, expireStr);
+      }
+    };
   } catch (e) {}
 };
 
@@ -169,16 +189,13 @@ export const hookFetch = once(() => {
  * 此方法目前只在手Q中使用，由 native 层提供
  */
 export const hookHttpRequest = once(() => {
-  /*  // @ts-ignore
+  // @ts-ignore
   const originCallNative = global.Hippy.bridge.callNative;
   const httpRequest = createHttpRequest(originCallNative);
   // @ts-ignore
     if(global?.Hippy?.bridge?.callNative) {
       // @ts-ignore
       global.Hippy.bridge.callNative = callNative;
-    }
-    if (Vue?.Native?.callNative) {
-      Vue.Native.callNative = callNative;
     }
 
     function callNative (module, method, ...args) {
@@ -188,7 +205,7 @@ export const hookHttpRequest = once(() => {
           return httpRequest(...args);
       }
       return originCallNative(module, method, ...args);
-    };*/
+    };
 })
 
 // @ts-ignore
@@ -392,6 +409,9 @@ export const hookWebSocket = once(() => {
 
 const parseCookie = (cookieStr: string, origin: string): CookieItem[] => {
   const cookies = [];
+  if (!cookieStr) {
+    return cookies;
+  }
   if (trim(cookieStr) !== '') {
     each(cookieStr.split(';'), function (value: any) {
       value = value.split('=');
