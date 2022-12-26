@@ -20,7 +20,7 @@ export function clearDataForOrigin(params: any) {
       const Cookie = getCookieAPI()
       if(Cookie) {
         origins.forEach(origin => {
-          Cookie.set(origin, '');
+          Cookie.set(origin, '', new Date(Date.now()));
         });
       }
     } else if (type === 'local_storage') {

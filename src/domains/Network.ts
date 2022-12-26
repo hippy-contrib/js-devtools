@@ -9,7 +9,6 @@ import connector from '../lib/connector';
 import { hookClass, hookFunction } from '../lib/hook';
 import { createId } from '../lib/util';
 import { getDomains } from '../lib/domain';
-import { log } from '../lib/log';
 // import { Vue, NetworkModule } from '../lib/external';
 
 const resTxtMap = new Map();
@@ -66,18 +65,40 @@ export function getResponseBody(params: any) {
 
 export const getCookieAPI = () => {
   try {
-    // if(Vue?.Native?.Cookie) {
-    //     return Vue.Native.Cookie;
-    // }
-    // if(NetworkModule) {
-    //   const { getCookies, setCookie } = NetworkModule;
-    //   return {
-    //     getAll: getCookies.bind(NetworkModule),
-    //     set: setCookie.bind(NetworkModule),
-    //   };
-    // }
-    log.warn('doesn\'t support Cookie in devtools, because could not find Cookie module');
-    return null;
+    // @ts-ignore
+    const callNative = global.Hippy.bridge.callNative;
+    // @ts-ignore
+    const callNativeWithPromise = global.Hippy.bridge.callNativeWithPromise;
+    return {
+      getAll(url) {
+        if (!url) {
+          throw new TypeError('Vue.Native.Cookie.getAll() must have url argument');
+        }
+
+        return callNativeWithPromise.call(this, 'network', 'getCookie', url);
+      },
+      set(url, keyValue, expireDate) {
+        if (!url) {
+          throw new TypeError('Vue.Native.Cookie.getAll() must have url argument');
+        }
+
+        if (typeof keyValue !== 'string') {
+          throw new TypeError('Vue.Native.Cookie.getAll() only receive string type of keyValue');
+        }
+
+        let expireStr = '';
+
+        if (expireDate) {
+          if (expireDate instanceof Date) {
+            expireStr = expireDate.toUTCString();
+          } else {
+            throw new TypeError('Vue.Native.Cookie.getAll() only receive Date type of expires');
+          }
+        }
+
+        callNative.call(this, 'network', 'setCookie', url, keyValue, expireStr);
+      }
+    };
   } catch (e) {}
 };
 
@@ -87,7 +108,8 @@ export const setCookie = (cookieItem: CookieItem) => {
     return;
   }
   const { name, url, value} = cookieItem;
-  Cookie.set(url, `${name}=${value}`);
+  const expireDate = new Date(Date.now());
+  Cookie.set(url, `${name}=${value}`, expireDate);
 }
 
 export const hookFetch = once(() => {
@@ -389,6 +411,9 @@ export const hookWebSocket = once(() => {
 
 const parseCookie = (cookieStr: string, origin: string): CookieItem[] => {
   const cookies = [];
+  if (!cookieStr) {
+    return cookies;
+  }
   if (trim(cookieStr) !== '') {
     each(cookieStr.split(';'), function (value: any) {
       value = value.split('=');
