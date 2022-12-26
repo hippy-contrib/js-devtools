@@ -8,6 +8,7 @@ import * as Network from './Network';
 // import * as DOMDebugger from './DOMDebugger';
 // import * as Debugger from './Debugger';
 import * as Storage from './Storage';
+import * as Page from './Page';
 
 const methods: any = {
   // 'DOMDebugger.getEventListeners': DOMDebugger.getEventListeners,
@@ -22,7 +23,7 @@ const methods: any = {
   'Network.setCookie': Network.setCookie,
 
   // 'Page.getResourceContent': noop,
-  // 'Page.getResourceTree': Page.getResourceTree,
+  'Page.getResourceTree': Page.getResourceTree,
 
   'Runtime.callFunctionOn': Runtime.callFunctionOn,
   'Runtime.compileScript': noop,
