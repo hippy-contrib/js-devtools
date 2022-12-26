@@ -76,7 +76,7 @@ export const getCookieAPI = () => {
 
         return callNativeWithPromise.call(this, 'network', 'getCookie', url);
       },
-      set(url, keyValue, expireDate) {
+      set(url, keyValue, expireDate?) {
         if (!url) {
           throw new TypeError('Cookie.getAll() must have url argument');
         }
@@ -107,7 +107,7 @@ export const setCookie = (cookieItem: CookieItem) => {
     return;
   }
   const { name, url, value} = cookieItem;
-  Cookie.set(url, `${name}=${value}`, new Date(Date.now()));
+  Cookie.set(url, `${name}=${value}`);
 }
 
 export const hookFetch = once(() => {
