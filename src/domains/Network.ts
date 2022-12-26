@@ -9,7 +9,6 @@ import connector from '../lib/connector';
 import { hookClass, hookFunction } from '../lib/hook';
 import { createId } from '../lib/util';
 import { getDomains } from '../lib/domain';
-// import { Vue, NetworkModule } from '../lib/external';
 
 const resTxtMap = new Map();
 let isEnabled = false;
@@ -72,18 +71,18 @@ export const getCookieAPI = () => {
     return {
       getAll(url) {
         if (!url) {
-          throw new TypeError('Vue.Native.Cookie.getAll() must have url argument');
+          throw new TypeError('Cookie.getAll() must have url argument');
         }
 
         return callNativeWithPromise.call(this, 'network', 'getCookie', url);
       },
       set(url, keyValue, expireDate) {
         if (!url) {
-          throw new TypeError('Vue.Native.Cookie.getAll() must have url argument');
+          throw new TypeError('Cookie.getAll() must have url argument');
         }
 
         if (typeof keyValue !== 'string') {
-          throw new TypeError('Vue.Native.Cookie.getAll() only receive string type of keyValue');
+          throw new TypeError('Cookie.getAll() only receive string type of keyValue');
         }
 
         let expireStr = '';
@@ -92,7 +91,7 @@ export const getCookieAPI = () => {
           if (expireDate instanceof Date) {
             expireStr = expireDate.toUTCString();
           } else {
-            throw new TypeError('Vue.Native.Cookie.getAll() only receive Date type of expires');
+            throw new TypeError('Cookie.getAll() only receive Date type of expires');
           }
         }
 
@@ -108,8 +107,7 @@ export const setCookie = (cookieItem: CookieItem) => {
     return;
   }
   const { name, url, value} = cookieItem;
-  const expireDate = new Date(Date.now());
-  Cookie.set(url, `${name}=${value}`, expireDate);
+  Cookie.set(url, `${name}=${value}`, new Date(Date.now()));
 }
 
 export const hookFetch = once(() => {
