@@ -9,6 +9,7 @@ import connector from '../lib/connector';
 import { hookClass, hookFunction } from '../lib/hook';
 import { createId } from '../lib/util';
 import { getDomains } from '../lib/domain';
+import { getType } from '../lib/request';
 
 const resTxtMap = new Map();
 let isEnabled = false;
@@ -136,8 +137,11 @@ export const hookFetch = once(() => {
     },
     after: function(ctx, res, url, options) {
       const { id } = ctx;
-      const { status, headers } = ctx;
-      // const type = getType(res.headers['Content-Type'] || res.headers['content-type']);
+      const { status, headers } = res;
+      Object.keys(headers).forEach(function(headerKey) {
+        headers[headerKey] = headers[headerKey][0];
+      });
+      const mimeType = getType(headers['Content-Type'] || headers['content-type']).subType;
       res.text().then((resTxt: string) => {
         resTxtMap.set(id, resTxt);
         const receiveProtocol: CMD = ['Network.responseReceived', {
@@ -147,6 +151,7 @@ export const hookFetch = once(() => {
             url,
             status,
             headers,
+            mimeType
           },
           timestamp: now() / 1000,
         }];
