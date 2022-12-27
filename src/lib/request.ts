@@ -22,7 +22,7 @@ export function getType(contentType: string) {
       subType: 'unknown',
     };
 
-  const type = contentType.split(';')[0].split('/');
+  const type = contentType.split(';');
 
   return {
     type: type[0],
