@@ -138,9 +138,6 @@ export const hookFetch = once(() => {
     after: function(ctx, res, url, options) {
       const { id } = ctx;
       const { status, headers } = res;
-      Object.keys(headers).forEach(function(headerKey) {
-        headers[headerKey] = headers[headerKey][0];
-      });
       const mimeType = getType(headers['Content-Type'] || headers['content-type']).subType;
       res.text().then((resTxt: string) => {
         resTxtMap.set(id, resTxt);
